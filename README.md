@@ -81,7 +81,7 @@ The following information was obtained by reading code at https://github.com/syn
 
 ## Driver Software
 
-HITACHI_LDS360.py defines the HITACHI_LDS360 class used to control the LIDAR.
+HITACHI_LDS360_LIDAR.py defines the HITACHI_LDS360 class used to control the LIDAR.
 
 Because of the high baud rate the driver uses two threads. One called **dataGatherer** is solely responsible for capturing the packets of data, maintaining sync with the data stream and storing the packets in a 60 element list. A second thread called **parser** scans the 60 captured packets and stores the distances in a 360 element list.
 
