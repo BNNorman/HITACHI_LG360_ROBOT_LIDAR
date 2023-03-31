@@ -1,4 +1,4 @@
-# HITACHI_LG360_ROBOT_LIDAR
+# HITACHI_LG_LDS360_ROBOT_LIDAR
 An investigation of the Hitachi LG360 Turtlebot Robot Lidar
 
 ![image](https://user-images.githubusercontent.com/15849181/229080401-91c47140-bc30-4980-9ec1-eadb665c3e99.png)
