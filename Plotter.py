@@ -9,18 +9,19 @@ LDS360=HITACHI_LDS360()
 
 LDS360.start()
 
+print("Waiting for LIDAR data")
 while not LDS360.dataIsAvailable():
     # could put a timeout here
     pass
+print("LIDAR is sending data")
 
 plt.figure(figsize=(5,5))
 
 while True:
     try:
-        points=LDS360.getAllAnglePoints()
+        points=LDS360.getPoints() # a list of XY tuples of available points
 
         if len(points)>0:
-
 
             plt.scatter(*zip(*points))
             plt.draw()
