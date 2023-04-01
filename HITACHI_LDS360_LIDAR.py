@@ -268,7 +268,6 @@ class HITACHI_LDS360:
 
         try:
             self.conn=serial.Serial(self.port,self.baudrate)
-            self.conn.set_buffer_size(rx_size=PACKET_SIZE)
         except SerialException:
             raise
 
@@ -337,12 +336,36 @@ class HITACHI_LDS360:
         Y=dist * math.sin(math.radians(angle))
         return (X,Y)
 
-    def getAllAnglePoints(self):
+    def getAnglePoints(self):
+        """
+        Returns a list of available points
+
+        Sometimes the LIDAR might get out of sync and miss an angle
+        so we return the angle associated with the coordinates
+        in case the caller wants to store them in a list indexed by angle
+
+        :return: list of tuples (ang,x,y)
+        """
         points=[]
         for angle in range(360):
             x,y=self.getAnglePoint(angle)
             if (x,y)!=(None,None):
-                points.append((x,y))
+                points.append((ang,x,y))
+        return points
+
+    def getPoints(self):
+        """
+        Returns a list of available points
+
+        This may be less than 360 degrees.
+
+        :return: list of tuples (x,y)
+        """
+        points = []
+        for angle in range(360):
+            x, y = self.getAnglePoint(angle)
+            if (x, y) != (None, None):
+                points.append((x, y))
         return points
 
 if __name__=="__main__":
