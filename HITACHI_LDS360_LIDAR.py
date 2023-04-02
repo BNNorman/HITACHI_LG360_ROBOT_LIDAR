@@ -75,6 +75,9 @@ HEADER_TIMEOUT=30   # time out syncing to datastream
 THREAD_TIMEOUT=10.0 # timeout when threads are terminated
 BAUD_RATE=230400    # do not change
 
+# according to the spec the detection ranges are
+MIN_RANGE=120
+MAX_RANGE=3500
 
 fa=bytearray([0xfa])
 a0=bytearray([0xa0])
@@ -322,11 +325,14 @@ class HITACHI_LDS360:
 
     def getAngleDist(self,angle):
         with self.lock:
-            dist=self.dist[angle]
-            if dist is None:
-                return None
             # according to github this is the value but what units (assume mm)?
-            return int(dist/10)
+            dist=self.dist[angle]
+            if dist is None 
+                return None # invalid range
+			dist=dist/10
+			dist<MIN_RANGE or dist>MAX_RANGE:
+				return None
+            return dist
 
     def getAnglePoint(self,angle):
         dist=self.getAngleDist(angle)
