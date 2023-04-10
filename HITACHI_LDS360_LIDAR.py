@@ -30,49 +30,10 @@ b'e'    Stop,   also stops the motor if motor gnd is connected as above
 
 Data format
 
-see https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver/blob/master/src/hlds_laser_publisher.cpp
-
-A full 360 degree sweep consists of 2520 bytes which, in turn, consists of 60 blocks each of
-42 bytes where each block contains the info for 6 degrees (60x6=360)
-
-The first block representing zero degrees has a header 0xfa,0xa0. The header for the next block
-is 0xfa,0xa1 which is 6 degrees then 0xfa,0xa2 which is 12 degrees and so on.
-
-block format.
-
-byte    value
-0       0xfa
-1       0xa0 + (6 * block number)   the base angle for this block, each step represents 6 degrees
-2:3     rpm                         little endian, motor speed (rpm)
-
-the following consists of 6 sets of 4 bytes each corresponding to base angle +0..5 degrees
-
-at base angle + 0
-4:5     intensity 1                 little endian laser intensity at base ang
-6:7     dist1                       little endian dist at base angle divide by 1000 valid range is 120-3500 mm
-
-at base angle +1
-8:11    intensity 2                
-12:13   dist2     
-                  
-at base angle +2
-14:17   intensity 3                 
-18:19   dist3 
-
-at base angle +3
-20:23   intensity 4
-24:25   dist4                       
-
-at base angle +4
-26:29   intensity 5
-30:31   dist5                      
-
-at base angle +5
-32:35  intensity 6
-36:37  dist6
+see LDS_Basic_Specification.pdf
 
 
-The data capture code runs in a seperate thread
+The data capture code runs in a seperate thread and captures the individual packets (42 bytes), extracts the angle and distance data which is cached till the user requests it.
 
 '''
 import serial
@@ -91,10 +52,11 @@ THREAD_TIMEOUT=10.0 # timeout when threads are terminated
 BAUD_RATE=230400    # do not change
 
 # according to the spec the detection ranges are
-MIN_RANGE=120
-MAX_RANGE=3500
+MIN_RANGE = 120	 # mm
+MAX_RANGE = 3500 # mm
+DIST_SCALE =  10 # SPEC doesn't actually say what the units of the stored distance value are
 
-fa=bytearray([0xfa])
+fa = bytearray([0xfa])
 a0=bytearray([0xa0])
 begin=b'b'
 end=b'e'
@@ -196,26 +158,31 @@ class HITACHI_LDS360:
                 with self.lock:
                     self.packet_list[seqNo]=packet
 
-
+    def crcCheck(self,packet):
+        """
+        sum all the bytes except the last two
+        """
+        crc=0
+        for b in range(40):
+            crc=crc+packet[b]
+        crc =0xFF-crc
+        if (crc & 0xFF != packet[40]) or (int(crc/256) != packet[41]):
+           return False # CRC FAILED
+        return True
+    
     def processPacket(self,packet):
         """
-        each packet contains data for 6 angles
-        packet[0]=0xfa
-        packet[1] corresponds to base angle degrees 0,6,12,,,,,,354
-        packet[4:5]  rpm data for the motor
-        packet[6:11] data for base angle
-        packet[12:17] data for base angle+1
-        packet[18:23] data for base angle+2
-        packet[24:39] data for base angle+3
-        packet[30:35] data for base angle+4
-        packet[36:41] data for base angle+5
+        each packet (42 bytes) contains data for 6 angles
+        
+        See LDS_Basic_Specification for serial data format.
         
         The data consists of an intensity value and a range value e.g.
         
-        packet[6:7] intensity (LSB,MSB)
-        packet[8:9] range (LSB,MSB)
+        packet[4:5] intensity (LSB,MSB)
+        packet[6:7] distance (LSB,MSB)
+        packet[8:9] reserved (LSB,MSB)
         
-        populates self.dist[] with 360 values
+        populates self.dist[] with 360 values (eventually)
 
         :param packet:
         :return: Nothing, populates self.dist[] with 360 values
@@ -225,13 +192,19 @@ class HITACHI_LDS360:
 
         degree=(packet[1]-0xa0)*6
 
+        # I'm not checking the CRC as I want the code to
+        # handle this processing quickly
+        # if not crcCheck(packet):
+        #    return
+        
         # check if this packet looks correct
-        # the degree will be 0,6,12..354
+        # the start degree will be 0,6,12..354
         if 0<=degree<=354:
-            # ok lets assume it's correct and grab the range value
+            # ok lets assume it's correct and grab the distance value
+            # ignoring intensity value
             for ang in range(6):
-                offset=ang*6+2
-                self.dist[degree+ang]=packet[offset]+packet[offset+1]*256
+                offset=ang*6
+                self.dist[degree+ang]=packet[offset]+packet[offset+1]*256 # scaled later
 
     def parser(self):
         """
@@ -244,7 +217,9 @@ class HITACHI_LDS360:
 
         t = threading.current_thread()
         while getattr(t, "do_run", True):
-            # There are 60 packets each 6 degrees apart 0,6,12,..348,354
+            
+            # There are 60 packets each 6 degrees apart 0,6,12,..348,354 which is the start angle
+            # and containing the distances for 6 degrees from the start angle
             for pktNo in range(NUM_PACKETS):
                 with self.lock:
                     self.processPacket(self.packet_list[pktNo])
@@ -352,11 +327,13 @@ class HITACHI_LDS360:
             # according to github this is the value but what units (assume mm)?
             dist=self.dist[angle]
             if dist is None 
-                return None # invalid range
-			dist=dist/10
+                return None # invalid/missing distance at this angle
+
+            dist=dist/DIST_SCALE # should be mm
+            
 			dist<MIN_RANGE or dist>MAX_RANGE:
 				return None
-            return dist
+            return dist/
 
     def getAnglePoint(self,angle):
         dist=self.getAngleDist(angle)

@@ -13,14 +13,13 @@ I thought it would be fun to play around with one of these. There are many diffe
 
 https://www.aliexpress.com/item/1005004738189008.html?spm=a2g0o.order_list.order_list_main.5.18051802BNCZEC
 
-The sensor transmits 60x42 byte packets one for every 6th degree of rotation. Each packet contains the distance data for the six angles and some extra fields which I have not found out about.
-
+The sensor transmits 60 x 42 byte packets one for every 6th degree of rotation. Each packet contains the distance data for the six angles in between.
 ## wiring
 
 |Motor|comments|
 |-----|--------|
 |Red|5v|
-|black| connect to the sensor orange wire so that the motor starts when the sensor starts
+|black| connect to the sensor orange wire so that the motor starts when the sensor starts. This is a pwm signal to control the motor speed
 
 |Sensor|comments|
 |------|--------|
@@ -31,69 +30,24 @@ The sensor transmits 60x42 byte packets one for every 6th degree of rotation. Ea
 |Blue| ?|
 |Orange|connect to motor Black|
 
-The device transmits data at 230400 baud.
+The device transmits serial data at 230400 baud.
 
-note: to start the sensor using a serial monitor press **b** (begin) the motor should start if wired as above. To stop the sensor press **e** (end).
+note: to start the sensor using a serial monitor send **b** (begin) the motor should start if wired as above. To stop the sensor send **e** (end).
 
 ## Serial Packet structure
 
-The following information was obtained by reading code at https://github.com/synthiam/Behavior-Control-Hitachi-LG-LDS-Lidar. Some of the fields were not identified in that code and are marked with a ?.
-
-| Byte | Comments |
-|------|----------|
-| 0    | 0xfa the start byte    |
-| 1    | 0xa0+base angle (0..59)|
-| 2    |?|
-| 3    |?|
-| 4    | motor rpm LSB |
-| 5    | motor rpm MSB |
-| 6   | intensity for base angle LSB      |
-| 7   | intensity for base angle MSB    |
-| 8   | base angle LSB of laser range |
-| 9   | base angle MSB of laser range |
-| 10|?|
-| 11|?|
-| 12| intensity for base angle +1  LSB  |
-| 13| intensity for base angle +1 MSB  |
-| 14| base angle +1 LSB of laser reading|
-| 15| base angle +1 MSB of laser reading|
-| 16| ?|
-| 17 ?|
-| 18|intensity for base angle +2  LSB  |
-| 19|intensity for base angle +2  MSB  |
-| 20 base angle +2 LSB of laser reading|
-| 21 base angle +2 MSB of laser reading|
-| 22| ?|
-| 23| ?|
-| 24| intensity for base angle +3  LSB |
-| 25| intensity for base angle +3  MSB |
-| 26| base angle +3 LSB of laser reading|
-| 27| base angle +3 MSB of laser reading|
-| 28| ?|
-| 29| ?|
-| 30 intensity for base angle +4  LSB |
-| 31|intensity for base angle +4  MSB |
-| 32 base angle +4 LSB of laser reading|
-| 33| base angle +4 MSB of laser reading|
-| 34| ?|
-| 35| ?|
-| 36| intensity for base angle +5  LSB|
-| 37| intensity for base angle +5  MSB|
-| 38| base angle +5 LSB of laser reading|
-| 39| base angle +5 MSB of laser reading|
-| 40| ?|
-| 41| ?|
+See LDS_BAsic_Specification.pdf
 
 
 ## Driver Software
 
 HITACHI_LDS360_LIDAR.py defines the HITACHI_LDS360 class used to control the LIDAR.
 
-Because of the high baud rate the driver uses two threads. One called **dataGatherer** is solely responsible for capturing the packets of data, maintaining sync with the data stream and storing the packets in a 60 element list. A second thread called **parser** scans the 60 captured packets and stores the distances in a 360 element list.
+Because of the high baud rate the driver uses two threads. One called **dataGatherer** which is solely responsible for capturing the packets of data, maintaining sync with the data stream and storing the packets in a 60 element list. A second thread called **parser** scans the 60 captured packets and stores the distances in a 360 element list.
 
 If you try to capture all 60 packets at once, 2520 bytes, I found that the risk of losing sync with the data stream increased. Regaining sync on 42 byte reads is faster.
 
-Thread locking is used to prevent accessing the lists before they have been updated.
+Thread locking is used to prevent accessing the stored lists whilst they are being updated.
 
 ## API
 
