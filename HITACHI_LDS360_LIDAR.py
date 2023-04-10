@@ -30,6 +30,8 @@ b'e'    Stop,   also stops the motor if motor gnd is connected as above
 
 Data format
 
+see https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver/blob/master/src/hlds_laser_publisher.cpp
+
 A full 360 degree sweep consists of 2520 bytes which, in turn, consists of 60 blocks each of
 42 bytes where each block contains the info for 6 degrees (60x6=360)
 
@@ -41,20 +43,33 @@ block format.
 byte    value
 0       0xfa
 1       0xa0 + (6 * block number)   the base angle for this block, each step represents 6 degrees
-2:3     rpm                         Big endian, not sure what this is cos the numbers are big
-4:5                                 unknown
-6:7     dist1                       dist at base angle divide by 10
-8:11                                unknown
-12:13   dist2                       at base angle +1
-14:17                               unknown
-18:19   dist3                       at base angle +2
-20:23                               unknown
-24:25   dist4                       at base angle +3
-26:29                               unknown
-30:31   dist5                       at base angle +4
-32:35                               unknown
-36:37   dist6                       at base angle +5
-38:42                               unknown
+2:3     rpm                         little endian, motor speed (rpm)
+
+the following consists of 6 sets of 4 bytes each corresponding to base angle +0..5 degrees
+
+at base angle + 0
+4:5     intensity 1                 little endian laser intensity at base ang
+6:7     dist1                       little endian dist at base angle divide by 1000 valid range is 120-3500 mm
+
+at base angle +1
+8:11    intensity 2                
+12:13   dist2     
+                  
+at base angle +2
+14:17   intensity 3                 
+18:19   dist3 
+
+at base angle +3
+20:23   intensity 4
+24:25   dist4                       
+
+at base angle +4
+26:29   intensity 5
+30:31   dist5                      
+
+at base angle +5
+32:35  intensity 6
+36:37  dist6
 
 
 The data capture code runs in a seperate thread
@@ -181,20 +196,29 @@ class HITACHI_LDS360:
                 with self.lock:
                     self.packet_list[seqNo]=packet
 
-        ##self.stop()
-        #raise SyncTimeout
 
     def processPacket(self,packet):
         """
         each packet contains data for 6 angles
         packet[0]=0xfa
         packet[1] corresponds to base angle degrees 0,6,12,,,,,,354
-        packet[6,7,8,9,10,11] 6 values correspond to intermediate degrees base+0,1,2,3,4,5
-
+        packet[4:5]  rpm data for the motor
+        packet[6:11] data for base angle
+        packet[12:17] data for base angle+1
+        packet[18:23] data for base angle+2
+        packet[24:39] data for base angle+3
+        packet[30:35] data for base angle+4
+        packet[36:41] data for base angle+5
+        
+        The data consists of an intensity value and a range value e.g.
+        
+        packet[6:7] intensity (LSB,MSB)
+        packet[8:9] range (LSB,MSB)
+        
         populates self.dist[] with 360 values
 
         :param packet:
-        :return: Nothing
+        :return: Nothing, populates self.dist[] with 360 values
         """
         if packet is None:
             return
@@ -204,10 +228,10 @@ class HITACHI_LDS360:
         # check if this packet looks correct
         # the degree will be 0,6,12..354
         if 0<=degree<=354:
-            # ok lets assume it's correct
+            # ok lets assume it's correct and grab the range value
             for ang in range(6):
-                offset=ang*6
-                self.dist[degree+ang]=packet[offset]*256+packet[offset+1]
+                offset=ang*6+2
+                self.dist[degree+ang]=packet[offset]+packet[offset+1]*256
 
     def parser(self):
         """
@@ -373,6 +397,23 @@ class HITACHI_LDS360:
             if (x, y) != (None, None):
                 points.append((x, y))
         return points
+
+	def getAllAnglePoints(self):
+        """
+        Returns a list of available points with the angle so that
+		averaging of X,Y at given angle can take place
+
+        This may be less than 360 degrees.
+
+        :return: list of tuples (angle,x,y)
+        """
+        points = []
+        for angle in range(360):
+            x, y = self.getAnglePoint(angle)
+            if (x, y) != (None, None):
+                points.append((angle,x, y))
+        return points
+
 
 if __name__=="__main__":
     # simple syntax check

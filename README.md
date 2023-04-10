@@ -1,3 +1,8 @@
+
+# BEWARE
+
+I am still refining this - feel free to contribute since the packet serial protocol has been gleaned from two different sources which disagree on which two byte provide the laser range.
+
 # HITACHI_LG_LDS360_ROBOT_LIDAR
 An investigation of the Hitachi LDS360 Turtlebot Robot Lidar
 
@@ -38,46 +43,47 @@ The following information was obtained by reading code at https://github.com/syn
 |------|----------|
 | 0    | 0xfa the start byte    |
 | 1    | 0xa0+base angle (0..59)|
-| 2    | rpm MSB |
-| 3    | rpm LSB |
-| 4    |    ?      |
-| 5    |    ?     |
-| 6    | base angle MSB of laser reading |
-| 7    | base angle LSB of laser reading |
-| 8 | ?|
-| 9 | ?|
-| 10 |? |
-| 11 |? |
-| 12 | base angle +1 MSB of laser reading|
-| 13 | base angle +1 LSB of laser reading|
-| 14 | ?|
-| 15| ?|
-| 16 |? |
-| 17 |? |
-| 18 | base angle +2 MSB of laser reading|
-| 19 | base angle +2 LSB of laser reading|
-| 20 | ?|
-| 21 | ?|
-| 22 | ?|
-| 23 | ?|
-| 24 | base angle +3 MSB of laser reading|
-| 25 | base angle +3 LSB of laser reading|
-| 26 | ?|
-| 27 | ?|
-| 28 | ?|
-| 29 | ?|
-| 30 | base angle +4 MSB of laser reading|
-| 31 | base angle +4 LSB of laser reading|
-| 32 | ?|
-| 33 | ?|
-| 34 | ?|
-| 35 | ?|
-| 36 | base angle +4 MSB of laser reading|
-| 37 | base angle +4 LSB of laser reading|
-| 38 | ?|
-| 39 | ?|
-| 40 | ?|
-| 41 | ?|
+| 2    |?|
+| 3    |?|
+| 4    | motor rpm LSB |
+| 5    | motor rpm MSB |
+| 6   | intensity for base angle LSB      |
+| 7   | intensity for base angle MSB    |
+| 8   | base angle LSB of laser range |
+| 9   | base angle MSB of laser range |
+| 10|?|
+| 11|?|
+| 12| intensity for base angle +1  LSB  |
+| 13| intensity for base angle +1 MSB  |
+| 14| base angle +1 LSB of laser reading|
+| 15| base angle +1 MSB of laser reading|
+| 16| ?|
+| 17 ?|
+| 18|intensity for base angle +2  LSB  |
+| 19|intensity for base angle +2  MSB  |
+| 20 base angle +2 LSB of laser reading|
+| 21 base angle +2 MSB of laser reading|
+| 22| ?|
+| 23| ?|
+| 24| intensity for base angle +3  LSB |
+| 25| intensity for base angle +3  MSB |
+| 26| base angle +3 LSB of laser reading|
+| 27| base angle +3 MSB of laser reading|
+| 28| ?|
+| 29| ?|
+| 30 intensity for base angle +4  LSB |
+| 31|intensity for base angle +4  MSB |
+| 32 base angle +4 LSB of laser reading|
+| 33| base angle +4 MSB of laser reading|
+| 34| ?|
+| 35| ?|
+| 36| intensity for base angle +5  LSB|
+| 37| intensity for base angle +5  MSB|
+| 38| base angle +5 LSB of laser reading|
+| 39| base angle +5 MSB of laser reading|
+| 40| ?|
+| 41| ?|
+
 
 ## Driver Software
 
