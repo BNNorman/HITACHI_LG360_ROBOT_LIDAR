@@ -157,18 +157,6 @@ class HITACHI_LDS360:
             if 0<seqNo<60:
                 with self.lock:
                     self.packet_list[seqNo]=packet
-
-    def crcCheck(self,packet):
-        """
-        sum all the bytes except the last two
-        """
-        crc=0
-        for b in range(40):
-            crc=crc+packet[b]
-        crc =0xFF-crc
-        if (crc & 0xFF != packet[40]) or (int(crc/256) != packet[41]):
-           return False # CRC FAILED
-        return True
     
     def processPacket(self,packet):
         """
@@ -191,11 +179,6 @@ class HITACHI_LDS360:
             return
 
         degree=(packet[1]-0xa0)*6
-
-        # I'm not checking the CRC as I want the code to
-        # handle this processing quickly
-        # if not crcCheck(packet):
-        #    return
         
         # check if this packet looks correct
         # the start degree will be 0,6,12..354
