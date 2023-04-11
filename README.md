@@ -1,7 +1,7 @@
 
 # BEWARE
 
-I am still refining this - feel free to contribute since the packet serial protocol has been gleaned from two different sources which disagree on which two byte provide the laser range.
+I am still refining this - feel free to contribute.
 
 # HITACHI_LG_LDS360_ROBOT_LIDAR
 An investigation of the Hitachi LDS360 Turtlebot Robot Lidar
