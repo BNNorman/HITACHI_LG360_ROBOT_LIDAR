@@ -64,8 +64,9 @@ from HITACHI_LDS360_LIDAR import HITACHI_LDS360
 |lds360.stop()| switches off the motor and closes the serial port|
 |lds360.dataIsAvailable()| True if the datastream has started - there can be a short delay|
 |lds360.getAngleDist(angle)| return the distance of an object at the given angle|
-|lds360.getAnglePoint(angle)| returns a tuple (x,y) for the point at the given angle|
-|lds360.getAllAnglePoint()| returns a list of upto 360 of tuples (x,y) for the point at the given angle. Note that there may be less than 360 values if serial sync is lost but this should improve as the packets are picked up and sync is re-established.|
-
+|lds360.getAnglePoint(angle)| returns a tuple (x,y) for the given angle|
+|lds360.getAnglePoints()| returns a list of tuples (angle,x,y) for available data|
+|lds360.getPoints()| returns a list of tuples (x,y) for available data|
+|lds360.getAllAnglePoints()|returns list of tuples (angle,x,y)|
 
 
