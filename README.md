@@ -3,6 +3,8 @@
 
 I am still refining this - feel free to contribute since the packet serial protocol has been gleaned from two different sources which disagree on which two byte provide the laser range.
 
+After much experimentation the unit I bought appears to be faulty. It sends data packets correctly but the readings are woeful. There's also a gap between 100 and 200 degrees. The distances I get from it don't indicate objects placed in close proximity. I suspect the laser TOF module is faulty or the ARM cpu isn't keeping up. The fault persists even after re-seating all cables. 
+
 # HITACHI_LG_LDS360_ROBOT_LIDAR
 An investigation of the Hitachi LDS360 Turtlebot Robot Lidar
 
