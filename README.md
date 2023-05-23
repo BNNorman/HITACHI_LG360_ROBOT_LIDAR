@@ -1,7 +1,11 @@
 
-# BEWARE
+# FAULTY UNIT
 
-I am still refining this - feel free to contribute.
+It seems that the unit I bought from Aliexpress is faulty. There is not data output for the range 100-200 degrees and, when placing objects close to the LIDAR the distance readings are non-sensible (range too long).
+
+I and trying to find a schematic, all my roads have dead ends, for this as it uses an STM32F205 mpu. It would be good to reprogram this with the Arduino IDE to find out if the fault is with the laser module (likely) or missed interrupts by the MCU - unlikely because it generates the correct serial data packets.
+
+
 
 # HITACHI_LG_LDS360_ROBOT_LIDAR
 An investigation of the Hitachi LDS360 Turtlebot Robot Lidar
