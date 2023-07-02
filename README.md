@@ -52,7 +52,7 @@ from HITACHI_LDS360_LIDAR import HITACHI_LDS360
 |lds360.stop()| switches off the motor , terminates the background task and closes the serial port|
 |lds360.dataIsAvailable()| True if the raw data array has been filled with 60 packets of data|
 |lds360.getAngleData(angle)| return the (intensity,distance) values at the given angle|
-|lds360.getIntensitiesAndDistances()| returns a tuple of two arrays (intensity,distance)|
+|lds360.getIntensitiesAndDistances()| returns a tuple of two arrays (intensity,distance). Each array has 360 entries|
 |lds360.getDistancePoints()| returns a list of 360 corresponding tuples (x,y) for available data points|
 |lds360.getIntensityPoints()| returns a list of 360 corresponding tuples (x,y) for available data points|
 
