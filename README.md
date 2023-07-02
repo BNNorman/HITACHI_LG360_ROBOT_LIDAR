@@ -47,7 +47,7 @@ from HITACHI_LDS360_LIDAR import HITACHI_LDS360
 
 | code | comment |
 |------|---------|
-|lds360=HITACHI_LDS360(<serialport>,baudrate=230400,debug=True)|  |
+|lds360=HITACHI_LDS360(port,baudrate=230400,debug=True)| serial port depends on platform |
 |lds360.start()| opens the serial port,starts the motor, there will be a slight delay till the datastream begins (header_timeout)|
 |lds360.stop()| switches off the motor , terminates the background task and closes the serial port|
 |lds360.dataIsAvailable()| True if the raw data array has been filled with 60 packets of data|
