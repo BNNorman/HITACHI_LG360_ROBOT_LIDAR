@@ -1,15 +1,7 @@
-
-# BEWARE
-
-I am still refining this - feel free to contribute since the packet serial protocol has been gleaned from two different sources which disagree on which two byte provide the laser range.
-
-After much experimentation the unit I bought appears to be faulty. It sends data packets correctly but the readings are woeful. There's also a gap between 100 and 200 degrees. The distances I get from it don't indicate objects placed in close proximity. I suspect the laser TOF module is faulty or the ARM cpu isn't keeping up. The fault persists even after re-seating all cables. 
-
 # HITACHI_LG_LDS360_ROBOT_LIDAR
 An investigation of the Hitachi LDS360 Turtlebot Robot Lidar
 
 ![image](https://user-images.githubusercontent.com/15849181/229080401-91c47140-bc30-4980-9ec1-eadb665c3e99.png)
-
 
 I thought it would be fun to play around with one of these. There are many different devices on AliExpress but I chose this one because the description said 'brand new' and the 'laser safety class 1' whereas others just indicated they used IR. 
 
@@ -45,11 +37,9 @@ See LDS_BAsic_Specification.pdf
 
 HITACHI_LDS360_LIDAR.py defines the HITACHI_LDS360 class used to control the LIDAR.
 
-Because of the high baud rate the driver uses two threads. One called **dataGatherer** which is solely responsible for capturing the packets of data, maintaining sync with the data stream and storing the packets in a 60 element list. A second thread called **parser** scans the 60 captured packets and stores the distances in a 360 element list.
+Because of the high baud rate the driver uses a background thread which is solely responsible for capturing the raw packets of data. It synchronises to the first packet and reads all 60 in one go.
 
-If you try to capture all 60 packets at once, 2520 bytes, I found that the risk of losing sync with the data stream increased. Regaining sync on 42 byte reads is faster.
-
-Thread locking is used to prevent accessing the stored lists whilst they are being updated.
+Thread locking is used to control accessing the stored raw_data.
 
 ## API
 
@@ -57,16 +47,19 @@ from HITACHI_LDS360_LIDAR import HITACHI_LDS360
 
 | code | comment |
 |------|---------|
-|lds360=HITACHI_LDS360(<port>)| header timeout defaults to 30s |
-|lds360=HITACHI_LDS360(<port>,header_timeout) | set your own header timeout|
-|lds360=HITACHI_LDS360(<port>,header_timeout,debug) | turn on a lot of debug messages|
-|lds360.start()| opens the serial port,starts the motor, there will be a slight delay till the datastream begings (header_timeout)|
-|lds360.stop()| switches off the motor and closes the serial port|
-|lds360.dataIsAvailable()| True if the datastream has started - there can be a short delay|
-|lds360.getAngleDist(angle)| return the distance of an object at the given angle|
-|lds360.getAnglePoint(angle)| returns a tuple (x,y) for the given angle|
-|lds360.getAnglePoints()| returns a list of tuples (angle,x,y) for available data|
-|lds360.getPoints()| returns a list of tuples (x,y) for available data|
-|lds360.getAllAnglePoints()|returns list of tuples (angle,x,y)|
+|lds360=HITACHI_LDS360(<serialport>,baudrate=230400,debug=True)|  |
+|lds360.start()| opens the serial port,starts the motor, there will be a slight delay till the datastream begins (header_timeout)|
+|lds360.stop()| switches off the motor , terminates the background task and closes the serial port|
+|lds360.dataIsAvailable()| True if the raw data array has been filled with 60 packets of data|
+|lds360.getAngleData(angle)| return the (intensity,distance) values at the given angle|
+|lds360.getIntensitiesAndDistances()| returns a tuple of two arrays (intensity,distance)|
+|lds360.getDistancePoints()| returns a list of 360 corresponding tuples (x,y) for available data points|
+|lds360.getIntensityPoints()| returns a list of 360 corresponding tuples (x,y) for available data points|
+
+
+## Plotter
+The plotter program uses matplotlib pyplot to produce a scatter diagram of the distance points like this
+
+![image](https://github.com/BNNorman/HITACHI_LG_LDS360_ROBOT_LIDAR/assets/15849181/e28e51a9-6854-47ee-90cf-edfc6e4a23fe)
 
 
