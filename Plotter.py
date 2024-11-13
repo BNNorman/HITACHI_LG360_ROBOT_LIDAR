@@ -20,7 +20,7 @@ Y=[0]*360
 
 while True:
     try:
-        points=LDS360.getAnglePoints()
+        points=LDS360.getDistancePoints()
 
         if len(points)>0:
             for p in range(360):

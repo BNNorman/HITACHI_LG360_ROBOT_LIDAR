@@ -77,12 +77,23 @@ Access is controlled with thread locking
 
 '''
 import serial
-from serial import SerialException
 import time
 import threading
 import math
+import platform
 
-SERIAL_PORT="COM3"
+SERIAL_PORT=None
+
+if platform.system()=="Windows":
+    SERIAL_PORT="COM3"
+
+if platform.system()=="Linux":
+    SERIAL_PORT="/dev/ttyUSB0"
+
+if SERIAL_PORT is None:
+    print("Unable to determine the serial port")
+    exit(0)
+
 DEBUG=True
 
 PACKET_SIZE=42      # a byte array 60x42 byte entries
@@ -101,6 +112,8 @@ a0=bytearray([0xa0])
 begin=b'b'
 end=b'e'
 
+class SerialException(Exception):
+    """unable to connect to the serial port"""
 class SerialTimeout(Exception):
     """Timeout waiting for serial data"""
 
