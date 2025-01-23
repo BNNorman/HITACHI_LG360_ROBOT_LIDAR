@@ -21,6 +21,14 @@ The sensor transmits, in one full rotation, a 60 x 42 byte stream of data. Each 
 
 I actually found the readings to be more stable by reading 60 consecutive packets rather than one packet at a time. It may be possible, using C, to read each packet individually without missing any but python on my RasPi4 and Dell Studio 1558 tended to miss some packets. 
 
+## screenshot
+
+This screenshot shows the device working in my rectangular living room. The pink markings are the distance readings whilst the green are the intensity readings (scaled down)
+
+![IMG_20241215_163843](https://github.com/user-attachments/assets/d673b2e5-67af-4444-bbc9-c18ab2af9910)
+
+
+
 ## wiring
 
 |Motor| comments                                                                                                                           |
