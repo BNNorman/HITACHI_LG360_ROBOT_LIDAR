@@ -25,7 +25,8 @@ I actually found the readings to be more stable by reading 60 consecutive packet
 
 This screenshot shows the device working in my rectangular living room. The pink markings are the distance readings whilst the green are the intensity readings (scaled down)
 
-![IMG_20241215_163843](https://github.com/user-attachments/assets/d673b2e5-67af-4444-bbc9-c18ab2af9910)
+
+![IMG_20241215_163843](https://github.com/user-attachments/assets/d23a2ae7-e590-41fa-9f6b-16a4c15ecaca)
 
 
 
