@@ -81,6 +81,7 @@ import time
 import threading
 import math
 import platform
+import numpy as np
 
 SERIAL_PORT=None
 
@@ -138,7 +139,23 @@ class HITACHI_LDS360:
         self.dataGathererThread = threading.Thread(target=self.dataGatherer)
 
         self.dataAvailable=False # indicates raw_data for a full 360 has been captured
-        self.raw_data=bytearray([0]*NUM_PACKETS*PACKET_SIZE)
+        
+        self.max_intensity=0
+        self.max_distance=MAX_RANGE
+        self.callback=None
+        
+        #self.distance=[MAX_RANGE]*360
+        self.distance=np.array([MAX_RANGE]*360,dtype=np.uint16)
+        #self.intensity=[0]*360
+        self.intensity=np.array([MAX_RANGE]*360,dtype=np.uint16)
+        self.data=bytearray([0]*PACKET_SIZE*NUM_PACKETS) # each pass as read from serial port
+
+        
+        # memory views can be accessed without using a lock
+        self.dataView=memoryview(self.data)
+        self.distanceView=memoryview(self.distance)
+        self.intensityView=memoryview(self.intensity)
+        
 
     def __del__(self):
         # make sure serial port is freed
@@ -146,6 +163,9 @@ class HITACHI_LDS360:
         if self.conn is None:
             return
         self.conn.close()
+
+    def setCallback(self,fn):
+        self.callback=fn
 
     def isRunning(self):
         # if any of these threads are not alive
@@ -170,17 +190,11 @@ class HITACHI_LDS360:
         except SerialException:
             raise
 
-    def readNextPacket(self):
+            
+    def readNextPass(self):
         """
-        packets are 42 bytes long begin with 0xfa followed by 0xa0+seqNo then angle info
-
-        seqNo is 0..59 (60 packets) representing 6 degree increments
-
-        The received data is not processed in this thread but stored in an array for later.
-
-        We sync to the first seqNo and grab all packets in one go
-
-        :return: nothing
+        read 60 consecutive packets (360 deg)
+        this seems to be more successful
         """
         start=time.time()
 
@@ -188,32 +202,39 @@ class HITACHI_LDS360:
             if (time.time() - start) >= DATA_TIMEOUT:
                 raise SerialTimeout
 
-        # it's easier to wait for the start of a new scan because
-        # the first two bytes will always be 0xfa oxa0
 
-        inSync=False
+        ch=self.getSerialData(1)
 
-        ch=bytearray([0])
-
-        while not inSync:
-
-            # look for leading byte of 0xfa
-            while ch!=fa:
-                if (time.time() - start) > SYNC_TIMEOUT:
-                    raise SyncTimeout
-                ch=self.getSerialData(1)
-
-            # followed by 0xa0 (angle index zero)
+        # look for leading byte of 0xfa
+        while ch!=fa:
+            if (time.time() - start) > SYNC_TIMEOUT:
+                raise SyncTimeout
             ch=self.getSerialData(1)
 
-            if ch==a0:
-                inSync=True
-
-        data=self.getSerialData(PACKET_SIZE*NUM_PACKETS - 2)
-
-        with self.lock:
-            self.raw_data=fa+a0+data # retain divisibility re PACKET_SIZE
-            self.dataAvailable=True
+        dataView=fa+self.getSerialData(PACKET_SIZE*NUM_PACKETS-1)
+    
+        for pkt in range(60):
+            pktStart=42*pkt
+            packet=dataView[pktStart:pktStart+42]
+            if packet[0] != 0xfa:
+                #print("FA Sync lost")
+                continue
+            angle_index=packet[1] - 0xa0
+            if angle_index not in range(60):
+                #print("angle_index invalid")
+                continue
+                
+            for angle_offset in range(6):
+                thisAngle=angle_index*6+angle_offset
+                distance=packet[7]<<8 | packet[6]
+                intensity=packet[5]<<8 | packet[4]
+                #print(f"thisAngle {thisAngle} dist {distance} intens {intensity}")
+                self.distanceView[thisAngle]=distance
+                self.intensityView[thisAngle]=intensity
+    
+        if self.callback is not None:
+            self.callback() # caller just sets a flag
+            
 
     def dataGatherer(self):
         """
@@ -228,13 +249,8 @@ class HITACHI_LDS360:
 
         try:
             t = threading.current_thread()
-            self.num_packets_read=0
             while getattr(t, "do_run", True):
-                self.readNextPacket()
-                self.num_packets_read+=1
-                if self.num_packets_read==60:
-                    self.dataAvailable=True
-                self.num_packets_read=0
+                self.readNextPass()
 
             if self.debug:
                 print("Data gatherer thread exit")
@@ -243,21 +259,6 @@ class HITACHI_LDS360:
             print(f"Exception in dataGatherer: {e}")
             self.stop()
 
-    def getAngleData(self,angle):
-        angleIdx = angle // 6
-        angle_offset = angle % 6
-
-        packet_start=angleIdx*PACKET_SIZE
-        #rdmv=memoryview(self.raw_data)
-        with self.lock:
-            packet=self.raw_data[packet_start:packet_start+PACKET_SIZE]
-
-        packet_offset = angle_offset * 6 + 4
-
-        # intensity and distance
-        intensity=int.from_bytes(packet[packet_offset:packet_offset+1],"little")
-        distance=int.from_bytes(packet[packet_offset + 2:packet_offset + 3],"little")
-        return intensity,distance
 
     def start(self):
         """
@@ -301,7 +302,7 @@ class HITACHI_LDS360:
         terminate the data gatherer and turn off the LIDAR
         :return: nothing
         """
-        print("Stop called")
+        print("Lidar stop called")
 
         if self.conn is None:
             # LIDAR has not been started
@@ -316,8 +317,6 @@ class HITACHI_LDS360:
 
             self.dataGathererThread.do_run=False
 
-            # wait till child threads have finished
-            self.dataGathererThread.join(THREAD_TIMEOUT)
 
         # must be done last
         self.conn.close()
@@ -326,54 +325,4 @@ class HITACHI_LDS360:
     def dataIsAvailable(self):
         # set True when the first packet is found
         return self.dataAvailable
-
-    def getIntensitiesAndDistances(self):
-        distance = [-1] * 360
-        intensity = [-1] * 360
-        for angle in range(360):
-            intensity[angle],distance[angle]=self.getAngleData(angle)
-        return intensity,distance
-
-    def getDistancePoints(self):
-        """
-        Returns a list of 360 distance points
-
-        :return: list of tuples (ang,x,y)
-        """
-        points=[]
-        i, d = self.getIntensitiesAndDistances() # not using intensity value
-        for angle in range(360):
-            X=d[angle] * math.cos(math.radians(angle))
-            Y=d[angle] * math.sin(math.radians(angle))
-            points.append((X,Y))
-        return points
-
-    def getIntensityPoints(self):
-        """
-        Returns a list of 360 distance points
-
-        :return: list of tuples (ang,x,y)
-        """
-        points=[]
-        i, d = self.getIntensitiesAndDistances() # not using intensity value
-        for angle in range(360):
-            X=i[angle] * math.cos(math.radians(angle))
-            Y=i[angle] * math.sin(math.radians(angle))
-            points.append((X,Y))
-        return points
-
-if __name__=="__main__":
-    # simple syntax check
-    LDS=HITACHI_LDS360()
-    LDS.start()
-
-    while not LDS.dataIsAvailable():
-        pass
-
-    intensity,distance=LDS.getIntensitiesAndDistances()
-
-    for ang in range (360):
-        print(f"ang {ang} intensity {intensity[ang]} distance {distance[ang]}")
-
-    LDS.stop()
 
